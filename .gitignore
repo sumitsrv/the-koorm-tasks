@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtualenv
+.venv/
+
+# Training artifacts — large, regenerable via train.py / export.py
+outputs/
+*.safetensors
+*.gguf
+*.bin
+
+# Unsloth compile cache (generated)
+unsloth_compiled_cache/
+
+# Generated training data — uncomment to keep it out of git.
+# It's small (a few MB) but takes hours to regenerate, so it's tracked by default.
+# data/*.jsonl
+# data/descriptions.json

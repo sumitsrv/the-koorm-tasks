@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import json; d=json.load\\(open\\('data/descriptions.json',encoding='utf-8'\\)\\); print\\(len\\(d\\),'descriptions'\\); print\\('\\\\n'.join\\(d[:3]\\)\\)\")",
+      "Bash(nvidia-smi --query-gpu=utilization.gpu,memory.used,memory.total --format=csv,noheader)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/generate.py',encoding='utf-8'\\).read\\(\\)\\); print\\('syntax ok'\\)\")",
+      "Bash(ls -1 data/)",
+      "Bash(python -c ' *)"
+    ]
+  }
+}
