@@ -67,7 +67,71 @@ TASK_SEEDS: dict[str, list[str]] = {
     ],
 }
 
-ALL_SEEDS = [desc for descs in TASK_SEEDS.values() for desc in descs]
+
+# Hands-on and procedural tasks. v1's seed set had essentially none of these —
+# even its "call the electrician about the flickering light" outsources the work
+# rather than doing it — so the student had never seen a plan whose steps have
+# real physical prerequisites.
+HANDS_ON_SEEDS: list[str] = [
+    "Fix the tap in the bathroom, it's been dripping for weeks",
+    "Unblock the shower drain",
+    "Replace the cracked tile in the kitchen splashback",
+    "Bleed the radiators before winter",
+    "Change the oil and filter on the car",
+    "Fix the puncture on my bike",
+    "Rehang the door that won't close properly",
+    "Replace the batteries and test every smoke alarm",
+    "Clear the gutters before the autumn storms",
+    "Sand and repaint the garden fence",
+    "Fit the new bathroom light switch",
+    "Descale the kettle and the coffee machine",
+    "Reseal the bath where the silicone has gone black",
+    "Put up the shelves that are still in their box",
+    "Replace the laptop battery that only holds an hour",
+    "Sharpen the kitchen knives properly",
+    "Service the lawnmower before spring",
+    "Fix the wobbly dining chair",
+]
+
+ALL_SEEDS = [desc for descs in TASK_SEEDS.values() for desc in descs] + HANDS_ON_SEEDS
+
+# ---------------------------------------------------------------------------
+# Diversity axes for seed expansion
+# ---------------------------------------------------------------------------
+# v1 expanded seeds *within* five fixed category buckets and asked for "diverse,
+# realistic tasks". The result, measured over the 502 descriptions it produced:
+# 65% arrange/schedule/email work and 1% anything hands-on — so the student
+# never saw a physical procedure and omitted "turn off the water" when fixing a
+# tap. These axes replace the category buckets as the nudge passed to the
+# teacher, and are deliberately weighted toward what v1 lacked.
+DIVERSITY_AXES = [
+    "Focus on hands-on repair and maintenance: things that break in a home, a "
+    "car, a bike, an appliance, and have to be physically fixed in the right order.",
+    "Focus on cleaning, decluttering, and organising physical spaces.",
+    "Focus on cooking, baking, meal planning, and food preparation.",
+    "Focus on unglamorous paperwork and bureaucracy: forms, claims, renewals, "
+    "disputes, cancellations, applications.",
+    "Focus on money: budgets, debts, invoices, pensions, bills, taxes, benefits.",
+    "Focus on health and medical logistics: appointments, prescriptions, "
+    "recovery, screening, preparing to talk to a doctor.",
+    "Focus on exercise and physical progression over weeks, starting from "
+    "nothing or after a long break.",
+    "Focus on creative work: writing, music, drawing, photography, crafts, "
+    "making things — including projects the person has stalled on.",
+    "Focus on caring for other people: children, elderly parents, a partner, "
+    "friends, and the practical tasks that involves.",
+    "Focus on pets and animals.",
+    "Focus on gardening, plants, and outdoor work.",
+    "Focus on technology and digital life: devices, accounts, backups, files, "
+    "home networks, and the physical side of hardware.",
+    "Focus on study and learning a skill.",
+    "Focus on travel, moving house, and big one-off life events.",
+    "Focus on errands and short tasks that take under half an hour.",
+    "Focus on tasks the person has been avoiding, and let the phrasing carry "
+    "that avoidance, dread, or perfectionism.",
+    "Focus on office and knowledge work.",
+    "Focus on social obligations and relationships.",
+]
 
 # ---------------------------------------------------------------------------
 # Random schedule generator (for schedule-adjustment examples)

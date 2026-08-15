@@ -77,15 +77,106 @@ pip install ollama==0.6.2 pydantic==2.13.4 tqdm==4.68.3 datasets==4.3.0
 ollama pull qwen3:8b
 ```
 
+## Design principle: the student extracts, the app resolves
+
+A 0.6B model is a good extractor and a poor oracle. v1 ignored that and asked it
+for a `due_date` — it has no clock, so 73% of the training targets came back
+dated 2023 and the shipped model answered "next Monday" with a date three years
+in the past.
+
+The schema now asks only for things the model can actually know:
+
+| The model does | The app does |
+|---|---|
+| Quotes the deadline words already in the task (`due_phrase`) | Resolves them against the real clock (`DeadlineParser`) |
+| Breaks the task into ordered steps | Scores priority (`PriorityAssessmentService`) |
+| Names a category and a stopping point | Supplies facts as context — today's date, calendar, open tasks |
+
+`quality.check_due_phrase` enforces the first row mechanically: a `due_phrase`
+must be a **literal substring of the task text**, so an invented deadline fails
+by construction. Anything else the model would have to guess is passed *in*
+instead, via the optional context block on the user turn:
+
+```python
+plan_user("Book the dentist", {"today": "2026-08-15 (Saturday)"})
+```
+
+That block is where the app's own knowledge lands — including anything it
+fetches over MCP or its existing connectors (calendar availability, the user's
+open tasks, email context). The 0.6B student never calls a tool itself; the app
+resolves the facts and hands them over, which is both more reliable and cheaper
+than teaching a model this size to orchestrate.
+
+## Data quality gates
+
+`src/quality.py` is what stands between a teacher's output and the training set,
+and it is tested like code (`python src/test_filters.py`). Every gate exists
+because its absence produced a measured defect in v1:
+
+| Gate | v1 defect it prevents |
+|---|---|
+| `check_good_enough` | 28% of criteria demanded perfection or named a deadline |
+| `check_subtasks` | 27 plans had no steps; 28 had 7-11; steps repeated verbatim |
+| `check_duration` | totals contradicted their own steps ("24 minutes" for 51) |
+| `check_ordering` | "File tax returns" as step 1; opening a tap without the water off |
+| `check_due_phrase` | dates invented out of thin air |
+| `check_invention` | a "travel agent" for a self-service booking |
+| `label_distribution_report` | HIGH on 80% of rows, `LOW` on exactly one |
+
+The gates apply identically to distilled and hand-authored data, so swapping to
+a cheaper teacher lowers yield — never the floor.
+
 ## Pipeline
 
 ### Step 1: Generate training data
 
+The teacher is chosen at runtime; **both backends are first-class**:
+
 ```bash
-python src/generate.py
+python src/generate.py --teacher ollama              # local qwen3:8b — free, offline
+python src/generate.py --teacher claude --workers 8  # Anthropic API — needs a key
+python src/generate.py --teacher claude --model claude-opus-5
 ```
 
-Uses the local Qwen3-8B teacher (via Ollama) to distill training data for:
+| | `ollama` | `claude` |
+|---|---|---|
+| Cost | free | per-token |
+| Needs | `ollama pull qwen3:8b` | `ANTHROPIC_API_KEY` or `ant auth login` |
+| Offline | yes | no |
+| Schema | validated after the fact | pinned server-side (structured outputs) |
+| Concurrency | keep `--workers 1` | raise it |
+
+Output is per-teacher (`data/plan_<teacher>.jsonl`), so runs accumulate side by
+side rather than overwriting each other.
+
+### Step 1b: Repair the v1 data instead of discarding it
+
+```bash
+python src/repair.py            # dry run, reports what it would change
+python src/repair.py --apply    # rewrites data/plan_train.jsonl (backs up first)
+```
+
+Salvages 312 of the original 492 examples: remaps the `SOCIAL` category the app
+never had, drops `due_date`, relabels priority against the stated rubric
+(HIGH 80% → MEDIUM 53% / HIGH 34% / URGENT 13%), makes each total match its own
+steps, and softens perfectionist criteria. What can't be fixed honestly is
+dropped, with a count and a reason for each.
+
+### Step 1c: Hand-authored gold examples
+
+```bash
+python src/gold.py              # validate all modules, write data/plan_gold.jsonl
+python src/gold.py --only gold_craft --check
+```
+
+237 examples across `src/gold_*.py`, covering what distillation missed: physical
+procedures with real prerequisites, unglamorous admin, creative work,
+caregiving, and the `LOW` priority label v1 had exactly one example of. Add a
+module by dropping a new `gold_<name>.py` in `src/` that exports `GOLD`.
+
+Whichever sources exist are merged by `python src/generate.py --combine-only`.
+
+The distillation step itself covers:
 - **Task planning** — breaking down natural-language tasks into structured plans with priority, category, subtasks, and "good enough" criteria
 - **Schedule adjustment** — fitting new tasks into an existing daily schedule while respecting constraints (meetings, lunch, buffers, no work past 17:00)
 
@@ -129,13 +220,31 @@ Merges LoRA weights into the base model and exports as GGUF Q4_K_M (~378 MB).
 
 Output: `outputs/gguf_gguf/qwen3-0.6b.Q4_K_M.gguf` (+ `Modelfile`) — deploy with llama.cpp / MLC LLM on Android & iOS, or Ollama.
 
+### Step 4: Evaluate against the held-out set
+
+```bash
+ollama create koorm-planner -f Modelfile
+python src/evaluate.py koorm-planner --baseline qwen2.5:0.5b
+```
+
+v1 had no evaluation beyond training loss, which is why its defects shipped — a
+loss curve cannot show you that `priority` collapsed to HIGH, that every date is
+in 2023, or that the "good enough" criterion is demanding perfection.
+`src/evaluate.py` measures each of those on 20 held-out tasks (none appear in
+`data/`), plus structure, latency, templating, and first-step size.
+
+**v1 baseline, for comparison:** 20/20 parseable and schema-valid, **0/20 passing
+the quality gates**; priority HIGH on 95%; category PERSONAL on 75%;
+`estimated_duration` disagreeing with its own steps on 20/20; perfectionist or
+deadline-bearing criteria on 10/20.
+
 ## Configuration
 
 All hyperparameters and paths are in `src/config.py`:
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `TEACHER_MODEL` | `qwen3:8b` | Ollama model for data generation |
+| `TEACHER_MODEL` | `qwen3:8b` | Default model for the `ollama` teacher (the `claude` teacher defaults to `claude-sonnet-5`; override either with `--model`) |
 | `STUDENT_MODEL` | `unsloth/Qwen3-0.6B` | HuggingFace model for fine-tuning |
 | `MAX_SEQ_LENGTH` | 2048 | Max training sequence length |
 | `PLAN_EXAMPLES_TARGET` | 500 | Number of task-plan training examples |
@@ -149,14 +258,28 @@ All hyperparameters and paths are in `src/config.py`:
 ```
 src/
 ├── config.py         # Paths, model names, hyperparameters
-├── schema.py         # Pydantic models (mirrors Koorm project's Kotlin types)
-├── prompts.py        # System prompts and prompt builders
-├── scenarios.py      # Seed task descriptions + random schedule generator
-├── generate.py       # Step 1: teacher distillation + quality filters via Ollama
-├── train.py          # Step 2: QLoRA fine-tuning via Unsloth
-├── export.py         # Step 3: GGUF export for phone deployment
-└── test_filters.py   # Self-check for the data-quality filters
+├── schema.py         # Pydantic models — MUST match the app's Kotlin types
+├── prompts.py        # System prompts; SYSTEM_PLAN is shared with the app verbatim
+├── quality.py        # The data-quality gates (see table above)
+├── scenarios.py      # Seed tasks, diversity axes, random schedule generator
+├── teacher.py        # Teacher backends: OllamaTeacher | ClaudeTeacher
+├── generate.py       # Step 1:  distillation pipeline (--teacher picks the backend)
+├── repair.py         # Step 1b: salvage the v1 data rather than discard it
+├── goldlib.py        # Step 1c: Gold dataclass + validation
+├── gold.py           #          aggregates every src/gold_*.py module
+├── gold_*.py         #          hand-authored examples, one module per domain
+├── train.py          # Step 2:  QLoRA fine-tuning via Unsloth
+├── export.py         # Step 3:  GGUF export for phone deployment
+├── evaluate.py       # Step 4:  held-out eval against a trained checkpoint
+└── test_filters.py   # Self-check for the gates — run it after touching quality.py
 ```
+
+> ⚠️ **`SYSTEM_PLAN` is a contract in three places**: what the teacher is asked
+> for, what the student is trained on, and what the app sends at inference time
+> (`PlannerPrompts.SYSTEM_PLAN` in the Koorm app's `TaskPlan.kt`). Measured on
+> v1: given a different planning prompt the model drifts to `[STEP 1: ...]`
+> pseudo-arrays; given none it answers in prose. Change it in both repos in the
+> same commit, and re-run `evaluate.py`.
 
 ## Model weights & GitHub
 

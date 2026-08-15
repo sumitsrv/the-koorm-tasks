@@ -1,32 +1,60 @@
-"""System prompts and prompt builders for teacher model inference."""
+"""System prompts and prompt builders.
+
+`SYSTEM_PLAN` is a contract in three places at once — it is what the teacher is
+asked for, what the student is trained on, and what the Koorm app sends at
+inference time (`PlannerPrompts.SYSTEM_PLAN` in
+`core-domain/.../services/planning/TaskPlan.kt`). All three must match verbatim.
+Measured on the v1 checkpoint: given a *different* planning prompt the model
+drifts to `[STEP 1: ...]` pseudo-arrays, and given no system prompt it answers in
+prose. Changing this string without changing the app's copy silently breaks
+inference.
+
+Every rule below exists because its absence produced a measured defect in v1;
+the comment on each says which.
+"""
 
 SYSTEM_PLAN = """\
-You are a task planning assistant for a productivity app designed for people who \
-struggle with perfectionism and overwhelm. Given a task description, analyze it \
-and produce a structured plan as JSON.
+You are a task planning assistant for a productivity app for people who struggle \
+with perfectionism and overwhelm. Given a task, produce a structured plan as JSON.
 
-Output format (JSON only, no markdown fences):
+Output ONLY valid JSON (no markdown fences, no prose):
 {
   "task": {
-    "title": "concise task title",
-    "description": "what needs to be done",
+    "title": "short imperative title",
+    "description": "one line: what needs doing",
     "priority": "URGENT" | "HIGH" | "MEDIUM" | "LOW",
-    "category": "WORK" | "PERSONAL" | "HEALTH" | "LEARNING" | "SOCIAL",
-    "estimated_duration": <total minutes>,
-    "due_date": "YYYY-MM-DD" or null,
-    "good_enough_criteria": "what 'done' looks like — no perfectionism",
+    "category": "WORK" | "PERSONAL" | "HEALTH" | "LEARNING" | "CREATIVE" | "ADMIN",
+    "estimated_duration": <total minutes, integer>,
+    "good_enough_criteria": "the point at which stopping is fine",
+    "due_phrase": "the task's own deadline words, copied exactly, or null",
     "subtasks": [
-      {"title": "actionable step", "order": 1, "estimated_minutes": <minutes>}
+      {"title": "concrete step", "order": 1, "estimated_minutes": 30}
     ]
   }
 }
 
 Rules:
-- Break tasks >30 min into 2-6 concrete subtasks
-- Add 20% buffer to time estimates
-- Always set good_enough_criteria
-- Subtask minutes should roughly sum to estimated_duration
-- Simple tasks (<15 min) need no subtasks\
+- 2-6 subtasks, in the order they must actually happen. Put any prerequisite \
+before the step that needs it: turn the water off before opening the tap, gather \
+the documents before filing the return.
+- Each subtask is one concrete physical or mental action the person can start \
+without deciding anything else first.
+- The first subtask must be small enough to start today — 15 minutes or less \
+wherever the task allows it.
+- estimated_duration must equal the sum of the subtask minutes.
+- good_enough_criteria names a realistic stopping point. It must never demand \
+perfection or completeness ("all", "every", "flawless", "no errors"), and must \
+never contain a clock time or a deadline.
+- priority: URGENT = a hard external deadline inside 24 hours. HIGH = due this \
+week, or someone else is blocked. MEDIUM = real but no deadline pressure. LOW = \
+nothing breaks if it slips. Most tasks are MEDIUM.
+- due_phrase: copy the deadline words that already appear in the task, exactly \
+as written ("before Saturday", "next Monday", "in three days"). Never convert \
+them to a date, and never write a deadline the task did not state — use null \
+when there is none.
+- Do not invent facts the task did not state — no names, deadlines, tools, or \
+third parties that were not mentioned. If the user turn supplies a Context \
+block, use those facts as given rather than guessing at them.\
 """
 
 SYSTEM_SCHEDULE = """\
@@ -40,6 +68,8 @@ Constraints:
 - No scheduling past 17:00
 - Higher priority tasks take precedence
 - If full, defer lower-priority tasks
+- Give the new task its full estimated_duration, or defer something to make room \
+— never silently shorten it
 
 Output format (JSON only, no markdown fences):
 {
@@ -56,22 +86,60 @@ Output format (JSON only, no markdown fences):
 }\
 """
 
+# Seed-expansion prompt. Deliberately unconstrained by category: v1 asked for
+# variations *within* five fixed buckets, and the result was 65% of descriptions
+# being arrange/schedule/email work and 1% anything hands-on. The student then
+# failed on exactly the tasks it had never seen — it omitted "turn off the water"
+# when fixing a tap, because no example in 502 involved fixing anything.
 SYSTEM_VARIATIONS = """\
-Generate exactly {n} diverse, realistic task descriptions that someone might \
-receive via email, encounter at work, or face in daily life. Category: {category}.
+Generate exactly {n} diverse, realistic tasks that a real person might need to \
+do. {axis}
 
-Make each unique, specific, and varied in complexity (mix simple 10-min tasks \
-with complex multi-hour ones). Include natural language cues for urgency and \
-deadlines where appropriate.
+Vary them hard along every axis you can:
+- domain: hands-on repair, cooking, caregiving, admin and bureaucracy, money, \
+health and medical, exercise, creative work, study, social obligations, travel, \
+pets, gardening, moving house, hobbies, paperwork, technology, errands
+- shape: physical procedures with real prerequisites, not just scheduling and \
+emailing something
+- size: from a 10-minute errand to a multi-hour project
+- tone: some neutral, some carrying the dread, avoidance or perfectionism the \
+person actually feels ("I keep restarting it", "I've been putting this off")
+- phrasing: some terse, some rambling, some with deadlines, most without
+
+Do not make them all office work. Do not make them all things you solve by \
+sending an email or booking an appointment.
 
 Output: a JSON array of strings, nothing else.\
 """
 
 
-def build_plan_prompt(task_description: str) -> list[dict]:
+def plan_user(task_description: str, context: dict[str, str] | None = None) -> str:
+    """The user turn, optionally carrying facts the app knows and the model can't.
+
+    This is the other half of the extract-don't-generate split. The model is a
+    good extractor and a poor oracle, so anything it would otherwise have to
+    invent — today's date, the user's working hours, what is already on the
+    calendar, which of their tasks are open — is *supplied* here rather than
+    guessed. The app is what has a clock, a calendar, and (via MCP or its own
+    connectors) the user's actual data; the model's job is to read those facts
+    and plan around them.
+
+        plan_user("Book the dentist", {"today": "2026-08-15 (Saturday)"})
+
+    Keep the block small and factual. It rides in front of every request, so
+    every line costs tokens on a 0.6B model's budget — include what changes the
+    plan, not everything the app happens to know.
+    """
+    if not context:
+        return f"Plan this task: {task_description}"
+    facts = "\n".join(f"- {k}: {v}" for k, v in context.items())
+    return f"Context:\n{facts}\n\nPlan this task: {task_description}"
+
+
+def build_plan_prompt(task_description: str, context: dict[str, str] | None = None) -> list[dict]:
     return [
         {"role": "system", "content": SYSTEM_PLAN},
-        {"role": "user", "content": f"Plan this task: {task_description}"},
+        {"role": "user", "content": plan_user(task_description, context)},
     ]
 
 
@@ -91,11 +159,9 @@ def build_schedule_prompt(
     ]
 
 
-def build_variation_prompt(category: str, n: int = 10) -> list[dict]:
+def build_variation_prompt(axis: str, n: int = 20) -> list[dict]:
+    """`axis` is a nudge toward an under-covered slice, not a hard category."""
     return [
-        {
-            "role": "system",
-            "content": SYSTEM_VARIATIONS.format(n=n, category=category),
-        },
-        {"role": "user", "content": "/think\nGenerate the task descriptions now."},
+        {"role": "system", "content": SYSTEM_VARIATIONS.format(n=n, axis=axis)},
+        {"role": "user", "content": "Generate the tasks now."},
     ]
