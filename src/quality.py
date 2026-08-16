@@ -285,6 +285,68 @@ def check_plan(parsed: dict, user_task: str = "", *, strict: bool = True) -> lis
     return problems
 
 
+def coverage_report(tasks: list[dict]) -> str:
+    """Warn when a field is present in the schema but absent from every target.
+
+    This exists because of a real miss: `due_phrase` was added to the schema,
+    the prompt, the gates, the app-side resolver and the tests — and then
+    backfilled into exactly zero training examples. Trained that way the student
+    would have learned "always emit null" and the feature would have been dead on
+    arrival, with nothing in the pipeline saying so.
+
+    A field the prompt asks for and no example demonstrates is not a feature.
+    Run this before every training run.
+    """
+    lines = []
+    total = len(tasks) or 1
+    for field in ("due_phrase",):
+        present = sum(1 for t in tasks if t.get(field) not in (None, "", []))
+        pct = present / total
+        lines.append(f"  {field:16s}: {present}/{total} non-null ({pct:.0%})")
+        if present == 0:
+            lines.append(f"    ^^ BLOCKER: the prompt asks for {field} and no example "
+                         f"demonstrates it — the student will learn to always omit it")
+        elif pct < 0.05:
+            lines.append(f"    ^^ WARNING: only {pct:.0%} coverage; the student may "
+                         f"treat {field} as always-null")
+
+    # Second-order check: a faithfully-extracted phrase the app cannot turn into
+    # a date populates the field without ever producing a due date. "next
+    # Monday" resolves; "before he's discharged" is a correct extraction that
+    # DeadlineParser will return null for.
+    #
+    # Both are legitimate *targets* — the model's job is to quote, not to
+    # resolve — but that is NOT a reason to ignore a low ratio here. Keeping an
+    # event-anchored phrase is right; writing a corpus that is mostly
+    # event-anchored is not, because then the trained feature populates a field
+    # the user never sees turn into a date. The fix is upstream of extraction:
+    # write more *task texts* that state a datable deadline ("by Tuesday",
+    # "in three weeks", "before the 14th"), so there is something datable to
+    # quote. Do not relabel event-anchored phrases to make this number go up.
+    phrases = [t["due_phrase"] for t in tasks if t.get("due_phrase")]
+    if phrases:
+        res = sum(1 for p in phrases if RESOLVABLE.search(p))
+        share = res / len(phrases)
+        lines.append(f"  {'  of which resolvable':16s}: {res}/{len(phrases)} ({share:.0%}) "
+                     f"carry a token DeadlineParser can date")
+        if share < 0.4:
+            lines.append(f"    ^^ WARNING: only {share:.0%} resolve to an actual date. The "
+                         f"field will populate but rarely set a due date — favour "
+                         f"phrases with a weekday, a date, or an 'in N days' span")
+    return "\n".join(lines)
+
+
+# Tokens DeadlineParser can actually anchor to a calendar. Event-anchored
+# phrases ("before the trip") are valid extractions but resolve to nothing.
+RESOLVABLE = re.compile(
+    r"\b(today|tonight|tomorrow|yesterday|monday|tuesday|wednesday|thursday|friday|"
+    r"saturday|sunday|january|february|march|april|may|june|july|august|september|"
+    r"october|november|december)\b|\bnext\s+\w+|\bin\s+(?:a|an|one|two|three|four|five|"
+    r"six|seven|eight|nine|ten|\d+)\s+(?:day|week|month|hour)s?\b|"
+    r"\bthis\s+(?:week|month|weekend|morning|afternoon|evening)\b|\d{1,2}(?:st|nd|rd|th)\b|"
+    r"\d{4}-\d{2}-\d{2}", re.I)
+
+
 def label_distribution_report(tasks: list[dict]) -> str:
     """v1's priority labels were HIGH 395 / URGENT 76 / MEDIUM 20 / LOW 1, so the
     student simply always said HIGH. Print this before every training run."""

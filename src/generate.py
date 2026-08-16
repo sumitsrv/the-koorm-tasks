@@ -10,7 +10,7 @@ this pipeline is identical either way, including the gates: whatever a teacher
 returns must pass `quality.check_plan` before it is written, so the teacher
 affects yield and content quality, never the schema floor.
 
-Output is per-teacher (`data/plan_<teacher>.jsonl`), so runs from different
+Output is per-teacher (`data/distilled/plan_<teacher>.jsonl`), so runs from different
 teachers accumulate side by side instead of overwriting each other — and
 `combine` merges whichever ones exist along with the repaired v1 data and the
 hand-authored gold set.
@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from tqdm import tqdm
 
-from config import DATA_DIR, PLAN_EXAMPLES_TARGET, SCHEDULE_EXAMPLES_TARGET
+from config import DATA_DIR, DATA_DISTILLED_DIR, DATA_GOLD_DIR, PLAN_EXAMPLES_TARGET, SCHEDULE_EXAMPLES_TARGET
 from prompts import SYSTEM_PLAN, SYSTEM_SCHEDULE, build_schedule_prompt
 from quality import check_plan, label_distribution_report
 from scenarios import ALL_SEEDS, DIVERSITY_AXES, NEW_TASK_SEEDS, generate_random_schedule
@@ -90,14 +90,15 @@ def valid_schedule(parsed: dict) -> bool:
 # ---------------------------------------------------------------------------
 
 def expand_seeds(teacher, target: int, workers: int) -> list[str]:
-    """Top up data/descriptions.json toward `target`. Only ever appends, so an
-    existing cache — and any plans already generated from it — stay valid.
+    """Top up data/distilled/descriptions.json toward `target`. Only ever
+    appends, so an existing cache — and any plans already generated from it —
+    stay valid.
 
     Expansion is nudged along `DIVERSITY_AXES` rather than v1's five fixed
     category buckets, which produced 65% arrange/schedule/email work and 1%
     anything hands-on.
     """
-    cache = DATA_DIR / "descriptions.json"
+    cache = DATA_DISTILLED_DIR / "descriptions.json"
     descs = json.loads(cache.read_text(encoding="utf-8")) if cache.exists() else list(ALL_SEEDS)
     seen = {d.strip().lower() for d in descs}
 
@@ -106,7 +107,7 @@ def expand_seeds(teacher, target: int, workers: int) -> list[str]:
         return descs
 
     print(f"Expanding {len(descs)} → {target} descriptions …", flush=True)
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    DATA_DISTILLED_DIR.mkdir(parents=True, exist_ok=True)
     rounds = 0
     while len(descs) < target and rounds < 20:   # cap rounds so a repeating teacher can't spin
         rounds += 1
@@ -129,7 +130,7 @@ def expand_seeds(teacher, target: int, workers: int) -> list[str]:
 # ---------------------------------------------------------------------------
 
 def generate_plan_examples(teacher, descriptions: list[str], workers: int) -> int:
-    out = DATA_DIR / f"plan_{teacher.name}.jsonl"
+    out = DATA_DISTILLED_DIR / f"plan_{teacher.name}.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
 
     done: set[str] = set()
@@ -194,7 +195,7 @@ def _plan_one(teacher, description: str):
 # ---------------------------------------------------------------------------
 
 def generate_schedule_examples(teacher, target: int, workers: int) -> int:
-    out = DATA_DIR / f"schedule_{teacher.name}.jsonl"
+    out = DATA_DISTILLED_DIR / f"schedule_{teacher.name}.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
 
     done = count_lines(out)
@@ -269,17 +270,17 @@ def combine():
     """
     combined = DATA_DIR / "train.jsonl"
     sources = [
-        "plan_train.jsonl",       # v1 distilled data (run repair.py --apply first)
-        "plan_ollama.jsonl",      # this pipeline, local teacher
-        "plan_claude.jsonl",      # this pipeline, hosted teacher
-        "plan_gold.jsonl",        # hand-authored (python src/gold.py)
-        "schedule_train.jsonl",
-        "schedule_ollama.jsonl",
-        "schedule_claude.jsonl",
+        (DATA_DISTILLED_DIR, "plan_train.jsonl"),       # v1 distilled data (run repair.py --apply first)
+        (DATA_DISTILLED_DIR, "plan_ollama.jsonl"),      # this pipeline, local teacher
+        (DATA_DISTILLED_DIR, "plan_claude.jsonl"),      # this pipeline, hosted teacher
+        (DATA_GOLD_DIR, "plan_gold.jsonl"),             # hand-authored (python src/gold.py)
+        (DATA_DISTILLED_DIR, "schedule_train.jsonl"),
+        (DATA_DISTILLED_DIR, "schedule_ollama.jsonl"),
+        (DATA_DISTILLED_DIR, "schedule_claude.jsonl"),
     ]
     examples, used = [], []
-    for name in sources:
-        p = DATA_DIR / name
+    for folder, name in sources:
+        p = folder / name
         if not p.exists():
             continue
         rows = [json.loads(line) for line in p.open(encoding="utf-8") if line.strip()]

@@ -32,7 +32,8 @@ DEVICES = [
        ("Sign in with the account and start the transfer from the old phone", 15),
        ("Wait for apps and photos to finish copying across", 30),
        ("Check messaging apps, banking apps and two-factor codes still work", 20),
-       ("Reset the old phone once everything is confirmed on the new one", 15)]),
+       ("Reset the old phone once everything is confirmed on the new one", 15)],
+      due="before the old one gets recycled"),
 
     G("Set up the new laptop, mine's finally dead",
       "Set up the new laptop", "Get the replacement laptop ready for daily use",
@@ -71,7 +72,8 @@ DEVICES = [
        ("Log in with the credentials sent over", 10),
        ("Install the VPN, email and whatever else the onboarding note listed", 30),
        ("Connect it to the home wifi and confirm email and calendar sync", 15),
-       ("Charge it fully overnight so it's ready in the morning", 5)]),
+       ("Charge it fully overnight so it's ready in the morning", 5)],
+      due="tomorrow"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -139,7 +141,8 @@ HARDWARE = [
        ("Check for a firmware update on the router", 15),
        ("Move the work laptop closer to the router, or run an ethernet cable", 20),
        ("Check which other devices are hogging the bandwidth and pause them", 10),
-       ("Do a test video call to confirm it holds", 15)]),
+       ("Do a test video call to confirm it holds", 15)],
+      due="tomorrow"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -171,7 +174,8 @@ SECURITY = [
       [("Pick a VPN provider and sign up", 15),
        ("Install the app on your phone and laptop", 15),
        ("Turn it on and check your IP address actually changes", 10),
-       ("Test it on a public wifi network like a cafe before you go", 20)]),
+       ("Test it on a public wifi network like a cafe before you go", 20)],
+      due="before the trip"),
 
     G("Locked out of the old email account and I need it for the job applications",
       "Recover the locked email account", "Get back into the email account you're locked out of",

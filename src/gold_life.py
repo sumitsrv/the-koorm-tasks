@@ -35,7 +35,8 @@ MOVE = [
       [("Write down the completion date and count backwards to what needs doing each week", 10),
        ("List the big jobs: removal, utilities, address changes, school if it applies", 15),
        ("Put the removal firm booking and any other fixed dates in the calendar", 20),
-       ("Pick the first room to start on and put a date on it", 10)]),
+       ("Pick the first room to start on and put a date on it", 10)],
+      due="in six weeks"),
 
     G("Find a removal firm for the house move, first time doing this and not sure what to look for",
       "Book a removal firm", "Compare firms and get one booked for moving day",
@@ -55,7 +56,8 @@ MOVE = [
        ("Pack the things you won't need in the next six weeks first: books, spare bedding, decorations", 90),
        ("Pack the kitchen last apart from what you use daily, wrapping anything breakable", 90),
        ("Label every box with the room it's going to and roughly what's in it", 30),
-       ("Pack a separate box of first-night essentials: kettle, chargers, bedding, toiletries", 20)]),
+       ("Pack a separate box of first-night essentials: kettle, chargers, bedding, toiletries", 20)],
+      due="before the move"),
 
     G("Set up gas, electric, water and broadband at the new place before we move in",
       "Set up utilities at the new address", "Get the essential services live before move-in day",
@@ -65,7 +67,8 @@ MOVE = [
        ("Call or go online to set up gas and electricity in your name from the move-in date", 40),
        ("Set up the water account with the local supplier", 20),
        ("Order broadband with enough lead time for the engineer visit", 30),
-       ("Take meter readings on move-in day and send them to each supplier", 15)]),
+       ("Take meter readings on move-in day and send them to each supplier", 15)],
+      due="before we move in"),
 
     G("Redirect the post and update our address everywhere before we forget",
       "Redirect the post and update the address", "Get mail redirected and the important accounts updated",
@@ -83,7 +86,8 @@ MOVE = [
        ("Go room by room sorting into keep, donate, sell and bin", 120),
        ("List anything worth selling online and photograph it", 30),
        ("Book a charity collection or drop the donate pile off yourself", 30),
-       ("Put the bin pile out or book a tip run", 20)]),
+       ("Put the bin pile out or book a tip run", 20)],
+      due="before the move"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -182,7 +186,8 @@ VEHICLES_PROPERTY = [
       [("Set your must-haves and hard no's so viewings don't waste time", 15),
        ("Shortlist listings that match and book viewings for a few", 30),
        ("Go to each viewing and note it down straight after while it's fresh", 150),
-       ("Compare notes side by side and decide which to see again", 20)]),
+       ("Compare notes side by side and decide which to see again", 20)],
+      due="the weekend"),
 
     G("The van's booked for Friday and half our stuff still doesn't fit anywhere, need storage sorted fast",
       "Sort storage before the move", "Get a storage unit sorted for what won't fit",
@@ -191,7 +196,8 @@ VEHICLES_PROPERTY = [
       [("Estimate roughly how much overflow needs storing, in boxes or a van-load", 10),
        ("Call two or three storage places nearby for unit size and price", 30),
        ("Book the unit and pay the deposit", 15),
-       ("Work out access times so you can drop things off around the move", 15)]),
+       ("Work out access times so you can drop things off around the move", 15)],
+      due="Friday"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -215,7 +221,8 @@ TRAVEL = [
       [("Look up which vaccinations are recommended for the destination", 15),
        ("Book an appointment at the travel clinic or GP", 15),
        ("Get the vaccinations, checking which need a course over several weeks", 45),
-       ("Note what was given and when the next dose is due if there is one", 10)]),
+       ("Note what was given and when the next dose is due if there is one", 10)],
+      due="before the trip"),
 
     G("Renew the travel insurance before it lapses",
       "Renew the travel insurance", "Get a new policy in place before the old one runs out",
@@ -223,7 +230,8 @@ TRAVEL = [
       "A policy that actually covers the trip is in place — it doesn't have to be the cheapest quote found",
       [("Check what the current policy covers and when it expires", 10),
        ("Compare a few quotes for the same level of cover", 30),
-       ("Buy the policy and save the documents somewhere you can find them travelling", 15)]),
+       ("Buy the policy and save the documents somewhere you can find them travelling", 15)],
+      due="before it lapses"),
 
     G("Planning a festival weekend with mates, need to get organised before tickets sell out",
       "Plan the festival weekend", "Get tickets, camping kit and logistics sorted",
@@ -257,7 +265,8 @@ HOUSEHOLD = [
        ("Order or borrow the big items: cot, car seat, pram", 60),
        ("Set up the nursery or sleeping space", 90),
        ("Pack the hospital bag", 30),
-       ("Fit the car seat and get it checked", 30)]),
+       ("Fit the car seat and get it checked", 30)],
+      due="Due date"),
 
     G("Get the house ready for winter before the cold really sets in, gutters and boiler and all that",
       "Get the house ready for winter", "Handle the jobs that stop winter becoming a crisis",
@@ -302,7 +311,8 @@ FAMILY_ADMIN = [
        ("Sort sleeping arrangements: beds, sofa beds, air mattresses", 30),
        ("Do the food shop in stages so the fridge isn't overwhelmed at once", 90),
        ("Cook the day itself, working back from serving time", 300),
-       ("Wrap the presents in the days before", 60)]),
+       ("Wrap the presents in the days before", 60)],
+      due="this year"),
 
     G("Sort a school run rota with the other parents on our street, doing it solo is killing me",
       "Sort the school run rota", "Share the school run with other parents nearby",

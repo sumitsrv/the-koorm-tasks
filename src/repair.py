@@ -1,6 +1,6 @@
 """Repair the v1 training data in place, instead of throwing 492 examples away.
 
-Most of what is wrong with `data/plan_train.jsonl` is mechanical and fixable: a
+Most of what is wrong with `data/distilled/plan_train.jsonl` is mechanical and fixable: a
 category the app doesn't have, a date field that should never have existed, a
 total that disagrees with its own steps, and a priority label that is HIGH on 80%
 of rows because the seed tasks were all urgency-flavoured and the teacher was
@@ -8,8 +8,8 @@ given no rubric. Those get rewritten. What can't be rewritten honestly — a pla
 with no steps, a genuinely perfectionist stopping point that survives cleanup —
 gets dropped, and the script says how many and why.
 
-    python src/repair.py            # writes data/plan_train.repaired.jsonl
-    python src/repair.py --apply    # also replaces data/plan_train.jsonl (backs up first)
+    python src/repair.py            # writes data/distilled/plan_train.repaired.jsonl
+    python src/repair.py --apply    # also replaces data/distilled/plan_train.jsonl (backs up first)
 
 The old system prompt is baked into every row's `messages[0]`, so it is replaced
 with the current `SYSTEM_PLAN` too — otherwise the repaired rows would train the
@@ -26,7 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config import DATA_DIR
+from config import DATA_DISTILLED_DIR
 from prompts import SYSTEM_PLAN
 from quality import PERFECTIONIST, check_plan, label_distribution_report
 from schema import PlanResponse, TaskCategory
@@ -156,8 +156,8 @@ def repair_task(task: dict, user_task: str) -> tuple[dict, list[str]]:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply", action="store_true",
-                    help="replace data/plan_train.jsonl (backs up to .v1.bak)")
-    ap.add_argument("--infile", default=str(DATA_DIR / "plan_train.jsonl"))
+                    help="replace data/distilled/plan_train.jsonl (backs up to .v1.bak)")
+    ap.add_argument("--infile", default=str(DATA_DISTILLED_DIR / "plan_train.jsonl"))
     args = ap.parse_args()
 
     src = Path(args.infile)
@@ -216,7 +216,8 @@ def main():
     print("\nLABEL DISTRIBUTION AFTER REPAIR")
     print(label_distribution_report(repaired_tasks))
 
-    out = DATA_DIR / "plan_train.repaired.jsonl"
+    DATA_DISTILLED_DIR.mkdir(parents=True, exist_ok=True)
+    out = DATA_DISTILLED_DIR / "plan_train.repaired.jsonl"
     with out.open("w", encoding="utf-8") as f:
         for ex in kept:
             f.write(json.dumps(ex, ensure_ascii=False) + "\n")

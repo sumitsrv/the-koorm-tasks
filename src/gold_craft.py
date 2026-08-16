@@ -61,7 +61,8 @@ TEXTILE = [
        ("Finish piecing whatever blocks are still missing", 60),
        ("Layer the top, wadding and backing and baste them together", 45),
        ("Quilt the layers, straight lines are fine", 90),
-       ("Trim the edges and sew on the binding", 60)]),
+       ("Trim the edges and sew on the binding", 60)],
+      due="any day"),
 
     G("Darn the moth holes in my favourite jumper instead of throwing it out",
       "Darn the moth-eaten jumper", "Darn the holes so the jumper is wearable again",
@@ -108,7 +109,8 @@ WOOD = [
        ("Glue the main assembly together and let it set", 45),
        ("Sand any rough seams once the glue has fully cured", 20),
        ("Paint the main colours, letting each dry before masking the next", 60),
-       ("Add the final details and seal with a light varnish coat", 30)]),
+       ("Add the final details and seal with a light varnish coat", 30)],
+      due="this weekend"),
 
     G("Upcycle the old dresser instead of taking it to the tip",
       "Upcycle the old dresser", "Prep and paint the dresser instead of throwing it out",
@@ -154,7 +156,8 @@ GARDEN = [
        ("Dig out the area to the right depth for the sub-base", 120),
        ("Compact a sub-base of hardcore and add a layer of sand", 90),
        ("Lay the slabs on mortar, checking each one with a spirit level", 180),
-       ("Point the joints between the slabs once they've set", 60)]),
+       ("Point the joints between the slabs once they've set", 60)],
+      due="before the summer"),
 
     G("The vegetable seedlings have gone leggy on the windowsill and need to get in the ground "
       "before they're beyond saving",
@@ -176,7 +179,8 @@ GARDEN = [
        ("Stand back and look at each tree's shape before cutting anything", 10),
        ("Remove dead, damaged or crossing branches first", 30),
        ("Shape the remaining branches to open up the centre", 40),
-       ("Clear the prunings away and check the cuts are clean", 20)]),
+       ("Clear the prunings away and check the cuts are clean", 20)],
+      due="while they're still dormant"),
 
     G("Build a compost heap instead of putting kitchen scraps in the bin",
       "Build the compost heap", "Set up a compost heap or bin for garden and kitchen waste",
@@ -205,7 +209,8 @@ GARDEN = [
        ("Cut the timber to length for the sides", 40),
        ("Screw the frame together and level it in place", 45),
        ("Line the base with cardboard to suppress the grass beneath", 15),
-       ("Fill it with topsoil and compost", 60)]),
+       ("Fill it with topsoil and compost", 60)],
+      due="this year"),
 
     G("Take cuttings from the neighbour's plant before I forget again",
       "Propagate the cuttings", "Take and pot on cuttings from the neighbour's plant",
@@ -299,7 +304,8 @@ STUDIO = [
        ("Bake the sponges and let them cool completely before touching them", 75),
        ("Make the buttercream or filling", 30),
        ("Fill and crumb-coat the cake, then chill it", 30),
-       ("Add the final coat of icing and decorate it", 60)]),
+       ("Add the final coat of icing and decorate it", 60)],
+      due="this weekend"),
 ]
 
 # ---------------------------------------------------------------------------

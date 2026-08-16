@@ -28,6 +28,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+from config import OUTPUT_DIR
 from prompts import SYSTEM_PLAN
 from quality import check_plan
 from schema import PlanResponse, Priority, TaskCategory
@@ -213,10 +214,12 @@ def evaluate(model: str) -> dict:
 
 
 def main():
+    default_out = OUTPUT_DIR / "eval" / f"{time.strftime('%Y%m%d-%H%M%S')}.json"
     ap = argparse.ArgumentParser()
     ap.add_argument("model", help="Ollama tag of the checkpoint to evaluate")
     ap.add_argument("--baseline", help="second model to compare against")
-    ap.add_argument("--out", default="eval_results.json")
+    ap.add_argument("--out", default=str(default_out),
+                    help="where to write full results (default: outputs/eval/<timestamp>.json)")
     args = ap.parse_args()
 
     runs = [evaluate(args.model)]
@@ -228,8 +231,10 @@ def main():
         for r in runs:
             print(f"  {r['model']:28s} {r['score']['clean']}/{r['score']['total']} clean")
 
-    Path(args.out).write_text(json.dumps(runs, indent=2, ensure_ascii=False))
-    print(f"\nfull output -> {args.out}")
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(runs, indent=2, ensure_ascii=False))
+    print(f"\nfull output -> {out}")
 
 
 if __name__ == "__main__":

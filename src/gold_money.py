@@ -59,7 +59,8 @@ BUDGETING = [
       [("Check the current contract price and when it renews", 10),
        ("Look up what competitors are charging for a similar deal", 20),
        ("Call the provider and ask for a loyalty or retention discount", 20),
-       ("Get the new price confirmed in writing", 10)]),
+       ("Get the new price confirmed in writing", 10)],
+      due="before it renews"),
 
     G("Set up an emergency savings pot, we have literally nothing put aside",
       "Set up an emergency savings pot", "Open a separate savings pot and start funding it",
@@ -178,7 +179,8 @@ PROPERTY = [
        ("Use a comparison site or broker to see what rates are available", 30),
        ("Gather payslips, bank statements and ID for the application", 40),
        ("Apply for the deal that fits best", 30),
-       ("Sign and return the offer documents once it arrives", 20)]),
+       ("Sign and return the offer documents once it arrives", 20)],
+      due="before the fixed rate deal runs out"),
 
     G("Get a mortgage in principle sorted before we start looking at houses properly",
       "Get a mortgage in principle", "Get an agreement in principle sorted before house-hunting",
@@ -196,7 +198,8 @@ PROPERTY = [
       [("Get a recent meter reading and the current tariff details", 10),
        ("Compare tariffs on a comparison site", 25),
        ("Sign up with the new supplier", 20),
-       ("Give the final meter reading when the old supplier asks for it", 10)]),
+       ("Give the final meter reading when the old supplier asks for it", 10)],
+      due="before the new tariff kicks in"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -288,7 +291,8 @@ MOVING_CLAIMS = [
        ("Fill in the online application form", 40),
        ("Book the biometrics appointment if one's required", 15),
        ("Submit the application and pay the fee", 20),
-       ("Note the tracking number and expected processing time", 10)]),
+       ("Note the tracking number and expected processing time", 10)],
+      due="before the work trip"),
 
     G("Update the address on every account and subscription now that we've actually moved",
       "Update the address everywhere", "Get the new address updated across banks, subscriptions and official bodies",

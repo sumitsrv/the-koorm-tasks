@@ -2,10 +2,10 @@
 
 Discovers every `src/gold_*.py` module, concatenates their `GOLD` lists,
 validates the lot against `quality.check_plan`, and writes
-`data/plan_gold.jsonl`. A failing example fails the build — it never reaches a
+`data/gold/plan_gold.jsonl`. A failing example fails the build — it never reaches a
 training run silently, which is precisely how v1's defects shipped.
 
-    python src/gold.py            # validate + write data/plan_gold.jsonl
+    python src/gold.py            # validate + write data/gold/plan_gold.jsonl
     python src/gold.py --check    # validate only, write nothing
 """
 
@@ -17,9 +17,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config import DATA_DIR
+from config import DATA_GOLD_DIR
 from goldlib import Gold, validate
-from quality import label_distribution_report
+from quality import coverage_report, label_distribution_report
 
 SRC = Path(__file__).parent
 
@@ -82,13 +82,16 @@ def main():
             print(f"  - {task[:64]}\n      {why}")
         raise SystemExit("fix the examples above before building")
 
+    tasks = [g.to_plan()["task"] for g in unique]
     print(f"\nvalidated {len(rows)} examples")
-    print(label_distribution_report([g.to_plan()["task"] for g in unique]))
+    print(label_distribution_report(tasks))
+    print(coverage_report(tasks))
 
     if args.check or args.only:
         return
 
-    out = DATA_DIR / "plan_gold.jsonl"
+    out = DATA_GOLD_DIR / "plan_gold.jsonl"
+    DATA_GOLD_DIR.mkdir(parents=True, exist_ok=True)
     with out.open("w", encoding="utf-8") as f:
         for r in rows:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")

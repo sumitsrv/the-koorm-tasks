@@ -146,14 +146,14 @@ python src/generate.py --teacher claude --model claude-opus-5
 | Schema | validated after the fact | pinned server-side (structured outputs) |
 | Concurrency | keep `--workers 1` | raise it |
 
-Output is per-teacher (`data/plan_<teacher>.jsonl`), so runs accumulate side by
+Output is per-teacher (`data/distilled/plan_<teacher>.jsonl`), so runs accumulate side by
 side rather than overwriting each other.
 
 ### Step 1b: Repair the v1 data instead of discarding it
 
 ```bash
 python src/repair.py            # dry run, reports what it would change
-python src/repair.py --apply    # rewrites data/plan_train.jsonl (backs up first)
+python src/repair.py --apply    # rewrites data/distilled/plan_train.jsonl (backs up first)
 ```
 
 Salvages 312 of the original 492 examples: remaps the `SOCIAL` category the app
@@ -165,7 +165,7 @@ dropped, with a count and a reason for each.
 ### Step 1c: Hand-authored gold examples
 
 ```bash
-python src/gold.py              # validate all modules, write data/plan_gold.jsonl
+python src/gold.py              # validate all modules, write data/gold/plan_gold.jsonl
 python src/gold.py --only gold_craft --check
 ```
 
@@ -184,10 +184,10 @@ Each example stores the teacher's **final validated JSON only** — the `<think>
 1. **Schema validation** (`PlanResponse` / `ScheduleResponse`) — structural correctness
 2. **Semantic filters** (`valid_plan` / `valid_schedule`) — subtask minutes roughly sum to the estimate, schedules have no overlaps, nothing runs past 17:00, deferred tasks are actually removed. Teacher outputs that fail are dropped.
 
-Outputs:
-- `data/descriptions.json` — expanded task descriptions (cached; tops up toward the target on re-run)
-- `data/plan_train.jsonl` — task planning examples
-- `data/schedule_train.jsonl` — schedule adjustment examples
+Outputs (see [`data/README.md`](data/README.md) for the full map):
+- `data/distilled/descriptions.json` — expanded task descriptions (cached; tops up toward the target on re-run)
+- `data/distilled/plan_train.jsonl` — task planning examples
+- `data/distilled/schedule_train.jsonl` — schedule adjustment examples
 - `data/train.jsonl` — combined, shuffled training set
 
 **Resumable:** If interrupted, re-run the same command and it picks up where it left off. Run only **one** instance at a time — two processes hitting the same Ollama model serialize and duplicate rows.
@@ -208,17 +208,32 @@ QLoRA fine-tunes Qwen3-0.6B on the distilled data using Unsloth.
 - 90/10 train/eval split with periodic eval loss (catches overfitting on the limited schedule variety)
 - VRAM usage: ~2-3 GB
 
-Output: `outputs/lora/` — LoRA adapter weights.
+Every run gets its own `outputs/runs/<run_id>/` (timestamped), so nothing from
+one run overwrites another:
+
+```
+outputs/runs/<run_id>/
+├── config.json         # hyperparams, git commit, data file + example count used
+├── metrics.jsonl        # trainer.state.log_history — one line per logged/eval step
+├── checkpoint-*/        # periodic trainer checkpoints (save_total_limit=2)
+└── lora/                # final LoRA adapter — this is what export.py reads
+```
+
+`train.py` also writes `outputs/latest.txt` with the run's id, which
+`export.py` reads by default. `outputs/` itself is gitignored (see
+[Model weights & GitHub](#model-weights--github)) — this structure is local
+bookkeeping, not something that gets committed.
 
 ### Step 3: Export to GGUF for phone deployment
 
 ```bash
-python src/export.py
+python src/export.py                    # exports outputs/latest.txt's run
+python src/export.py --run 20260816-143200   # or a specific run
 ```
 
 Merges LoRA weights into the base model and exports as GGUF Q4_K_M (~378 MB).
 
-Output: `outputs/gguf_gguf/qwen3-0.6b.Q4_K_M.gguf` (+ `Modelfile`) — deploy with llama.cpp / MLC LLM on Android & iOS, or Ollama.
+Output: `outputs/runs/<run_id>/gguf_gguf/qwen3-0.6b.Q4_K_M.gguf` (+ `Modelfile`) — deploy with llama.cpp / MLC LLM on Android & iOS, or Ollama. (Unsloth writes the merged fp16 model to `gguf/` and the quantized file to the sibling `gguf_gguf/` — that suffix is Unsloth's naming, not a typo.)
 
 ### Step 4: Evaluate against the held-out set
 
@@ -231,7 +246,9 @@ v1 had no evaluation beyond training loss, which is why its defects shipped — 
 loss curve cannot show you that `priority` collapsed to HIGH, that every date is
 in 2023, or that the "good enough" criterion is demanding perfection.
 `src/evaluate.py` measures each of those on 20 held-out tasks (none appear in
-`data/`), plus structure, latency, templating, and first-step size.
+`data/`), plus structure, latency, templating, and first-step size. Full
+per-task results are written to `outputs/eval/<timestamp>.json` (override with
+`--out`).
 
 **v1 baseline, for comparison:** 20/20 parseable and schema-valid, **0/20 passing
 the quality gates**; priority HIGH on 95%; category PERSONAL on 75%;
@@ -272,6 +289,15 @@ src/
 ├── export.py         # Step 3:  GGUF export for phone deployment
 ├── evaluate.py       # Step 4:  held-out eval against a trained checkpoint
 └── test_filters.py   # Self-check for the gates — run it after touching quality.py
+
+data/                 # tracked in git — see data/README.md for what's where and how to regenerate it
+├── train.jsonl        # combined training set (what train.py reads)
+├── gold/               # hand-authored examples (src/gold_*.py -> gold.py)
+└── distilled/           # teacher-generated + repaired v1 data
+
+outputs/               # gitignored — local training artifacts, not committed
+├── latest.txt          # run_id of the most recent train.py run
+└── runs/<run_id>/       # one dir per run: config.json, metrics.jsonl, checkpoints, lora/, gguf/
 ```
 
 > ⚠️ **`SYSTEM_PLAN` is a contract in three places**: what the teacher is asked

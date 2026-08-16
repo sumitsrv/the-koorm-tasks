@@ -86,7 +86,8 @@ REPAIR = [
        ("Drain the old oil and swap the filter", 40),
        ("Refill, run the engine and check the level on the dipstick", 20),
        ("Set the tyre pressures including the spare", 15),
-       ("Take the old oil to the recycling point", 20)]),
+       ("Take the old oil to the recycling point", 20)],
+      due="before the long drive"),
 
     G("The washing machine won't drain",
       "Unblock the washing machine", "Clear whatever is stopping the drain",
@@ -131,7 +132,8 @@ HOME = [
        ("Clean the bathroom: sink, toilet, mirror, floor", 30),
        ("Wipe the kitchen surfaces and clear the sink", 25),
        ("Vacuum the rooms guests will be in", 25),
-       ("Change the towels and take the bins out", 15)]),
+       ("Change the towels and take the bins out", 15)],
+      due="before guests arrive on Saturday"),
 
     G("Declutter the wardrobe, I can't shut the door",
       "Declutter the wardrobe", "Thin out clothes until the wardrobe closes",
@@ -254,7 +256,8 @@ ADMIN = [
       [("Check what the renewal needs and how long it is currently taking", 15),
        ("Get the photo taken to the official spec", 25),
        ("Fill in the application form", 35),
-       ("Send it with the old passport and the fee, and note the tracking", 20)]),
+       ("Send it with the old passport and the fee, and note the tracking", 20)],
+      due="in three months"),
 
     G("Sort out the insurance claim for the water damage",
       "File the water damage claim", "Get the claim submitted with evidence",
@@ -479,7 +482,8 @@ WORK = [
        ("Note the three things that actually changed and why", 30),
        ("Draft the summary around those three points", 45),
        ("Build the charts that support them", 40),
-       ("Read it once for sense and tidy the formatting", 25)]),
+       ("Read it once for sense and tidy the formatting", 25)],
+      due="next Monday"),
 
     G("Migrate the database off the deprecated server",
       "Migrate the database", "Move the database to the new server",
@@ -499,7 +503,8 @@ WORK = [
       [("Skim the year's calendar and notes for what you actually shipped", 15),
        ("Write down four or five examples with the outcome next to them", 30),
        ("Note the two things you want to ask for", 15),
-       ("Read it back and cut it to what you can say in ten minutes", 20)]),
+       ("Read it back and cut it to what you can say in ten minutes", 20)],
+      due="on Thursday"),
 
     G("Learn enough Kotlin coroutines to refactor our networking layer",
       "Learn coroutines for the refactor", "Get to working knowledge of coroutines",
@@ -561,7 +566,8 @@ OUT = [
       [("Check the conference dates and which sessions you need to be there for", 15),
        ("Compare flights for those dates and book one", 40),
        ("Book a room near the venue", 30),
-       ("Save the confirmations and add the trip to the calendar", 15)]),
+       ("Save the confirmations and add the trip to the calendar", 15)],
+      due="in October"),
 
     G("Pack for the trip, we leave in three days",
       "Pack for the trip", "Get packed without the last-night panic",
@@ -571,7 +577,8 @@ OUT = [
        ("Write a short list by category: clothes, toiletries, documents, chargers", 15),
        ("Put the documents and chargers in the bag first", 15),
        ("Pack the clothes against the list", 35),
-       ("Do one last pass for the things you use every morning", 15)]),
+       ("Do one last pass for the things you use every morning", 15)],
+      due="in three days"),
 
     G("Sort the garden out before it gets away from us completely",
       "Get the garden back under control", "Cut back and tidy the garden",
@@ -590,7 +597,8 @@ OUT = [
        ("Set up alerts on the listing sites", 20),
        ("Book viewings in batches rather than one at a time", 40),
        ("Go to the viewings and note them down straight after", 120),
-       ("Put an offer in on the best realistic option", 30)]),
+       ("Put an offer in on the best realistic option", 30)],
+      due="in two months"),
 
     G("Return the parcel before the refund window closes",
       "Return the parcel", "Send the item back for a refund",
@@ -599,7 +607,8 @@ OUT = [
       [("Find the order and start the return online", 10),
        ("Print or save the return label", 10),
        ("Repack the item with everything it came with", 15),
-       ("Drop it at the collection point and keep the receipt", 25)]),
+       ("Drop it at the collection point and keep the receipt", 25)],
+      due="before the refund window closes"),
 
     G("Get the Christmas shopping done without leaving it to the last week",
       "Do the Christmas shopping", "Buy and wrap the presents",

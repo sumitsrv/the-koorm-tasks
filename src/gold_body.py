@@ -98,7 +98,8 @@ FITNESS = [
        ("Pick one easy, familiar route to start with", 10),
        ("Do a short ride at a pace you could hold a conversation through", 30),
        ("Do a similar short ride again later in the week", 30),
-       ("Only make the next ride longer once both felt easy", 25)]),
+       ("Only make the next ride longer once both felt easy", 25)],
+      due="before it gets warm"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -314,7 +315,8 @@ ROUTINE = [
        ("Find a travel clinic or GP practice that offers them", 10),
        ("Book the appointment, checking it leaves enough time before you fly", 15),
        ("Go to the appointment and get the jabs done", 30),
-       ("Note in the calendar if a booster or second dose is needed", 10)]),
+       ("Note in the calendar if a booster or second dose is needed", 10)],
+      due="before the trip"),
 
     G("Dentist told me off about flossing again and I still haven't started",
       "Build a flossing habit", "Actually start flossing daily like the dentist keeps saying",

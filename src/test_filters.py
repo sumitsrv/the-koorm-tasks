@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from generate import valid_schedule
 from quality import (
     check_due_phrase,
+    coverage_report,
     check_good_enough,
     check_ordering,
     check_plan,
@@ -168,5 +169,13 @@ collapsed.append({"priority": "LOW", "category": "PERSONAL"})
 assert "WARNING" in label_distribution_report(collapsed)
 balanced = [{"priority": p, "category": "WORK"} for p in ("LOW", "MEDIUM", "HIGH", "URGENT")]
 assert "WARNING" not in label_distribution_report(balanced).split("category")[0]
+
+# --- coverage: a field nothing demonstrates is not a feature ----------------
+# due_phrase was added to the schema, prompt, gates, app resolver and tests, and
+# backfilled into zero examples. Trained that way the student learns "always
+# null" and the feature is dead on arrival — with nothing saying so.
+assert "BLOCKER" in coverage_report([{"due_phrase": None}] * 50)
+assert "WARNING" in coverage_report([{"due_phrase": "by Friday"}] + [{"due_phrase": None}] * 99)
+assert "BLOCKER" not in coverage_report([{"due_phrase": "by Friday"}] * 20 + [{"due_phrase": None}] * 80)
 
 print("all filter checks passed")

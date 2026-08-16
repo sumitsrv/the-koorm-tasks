@@ -107,7 +107,8 @@ ELDERCARE = [
        ("Buy grab rails rated for the wall type", 25),
        ("Find the studs, or the right fixings for a stud-free wall", 15),
        ("Drill and fit the rails", 40),
-       ("Put your full weight on each one to check it holds", 5)]),
+       ("Put your full weight on each one to check it holds", 5)],
+      due="before he's discharged"),
 
     G("Sort mum's medication now she's got pills from three different doctors",
       "Sort out mum's medication", "Get her different prescriptions organised into one system",
@@ -187,7 +188,8 @@ ANIMALS = [
       [("Walk round at floor level and spot anything chewable or dangerous", 15),
        ("Move or tape down loose wires", 20),
        ("Put a stair gate across any rooms that are off limits", 15),
-       ("Set up a crate with bedding in a quiet corner", 15)]),
+       ("Set up a crate with bedding in a quiet corner", 15)],
+      due="on Saturday"),
 
     G("Rehome the rabbits, we can't keep them after the move",
       "Rehome the rabbits", "Find them a good new home before the move",
